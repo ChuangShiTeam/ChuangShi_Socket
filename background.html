@@ -1,0 +1,51 @@
+<html>
+<head>
+    <script src="socket.io.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+//    socket = io('http://localhost:3001', {jsonp: false});
+    socket = io('http://121.40.44.121:3001', {jsonp: false});
+
+    //进入连接
+    socket.on('connect', function () {
+
+    });
+
+    //游戏开始
+    socket.on('start', function (data) {
+
+    });
+
+    //游戏结束
+    socket.on('stop', function (data) {
+
+    });
+
+    //游戏重新开始
+    socket.on('restart', function (data) {
+
+    });
+
+    //退出连接
+    socket.on('disconnect', function () {
+
+    });
+
+    //后台台登录
+    socket.emit('login', {
+        name: '后台',
+        avatar: '',
+        token: 'background'
+    });
+
+    //开始游戏
+    socket.emit('start', {});
+
+    //重新开始游戏开始游戏
+    //socket.emit('restart', {});
+
+    //显示所有用户头像
+    //socket.emit('show', {});
+</script>
+</body>
