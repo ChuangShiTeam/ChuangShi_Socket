@@ -1,70 +1,153 @@
 <html>
 <head>
+    <script src="https://npmcdn.com/react@15.3.1/dist/react.js"></script>
+    <script src="https://npmcdn.com/react-dom@15.3.1/dist/react-dom.js"></script>
+    <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script src="socket.io.js"></script>
 </head>
 <body>
 <script type="text/javascript">
     var name = '用户3';
     var token = '333';
-    var isGameStart = false;
 
     function getRandom(min, max) {
         var Range = max - min;
         var Rand = Math.random();
         return (min + Math.round(Rand * Range));
     }
+</script>
+<div id="container"></div>
+<script type="text/babel">
+    class Index extends React.Component {
+        constructor(props) {
+            super(props);
 
-    socket = io('http://localhost:3001', {jsonp: false});
-//        socket = io('http://121.40.44.121:3001', {jsonp: false});
+            this.state = {
+                isGameWait: false,
+                isGameStart: false,
+                isGameStop: false
+            };
+        }
 
-    //进入连接
-    socket.on('connect', function () {
+        componentDidMount() {
+            window.socket = io('http://localhost:3001', {jsonp: false});
+//            window.socket = io('http://121.40.44.121:3001', {jsonp: false});
 
-    });
+            //进入连接
+            window.socket.on('connect', function () {
 
-    //游戏开始
-    socket.on('start', function (data) {
-        isGameStart = true;
-    });
+            });
 
-    //游戏结束
-    socket.on('stop', function (data) {
-        isGameStart = false;
-    });
+            //游戏开始
+            window.socket.on('wait', function (response) {
+                this.setState({
+                    isGameWait: true,
+                    isGameStart: false,
+                    isGameStop: false
+                });
+            }.bind(this));
 
-    //退出连接
-    socket.on('disconnect', function () {
+            //游戏开始
+            window.socket.on('start', function (response) {
+                this.setState({
+                    isGameWait: false,
+                    isGameStart: true,
+                    isGameStop: false
+                });
+            }.bind(this));
 
-    });
+            //游戏结束
+            window.socket.on('stop', function (response) {
+                this.setState({
+                    isGameWait: false,
+                    isGameStart: false,
+                    isGameStop: true
+                });
+            }.bind(this));
 
-    //用户登录
-    socket.emit('login', {
-        name: name,
-        avatar: '',
-        token: token
-    }, function (data) {
-        console.log(data);
-    });
-
-    function shake() {
-        var distance = getRandom(1, 10);
-        var delay = getRandom(500, 1000);
-
-        if (isGameStart) {
-            //用户摇一摇
-            socket.emit('shake', {
-                token: token,
-                distance: distance
-            }, function (data) {
+            //退出连接
+            window.socket.on('disconnect', function (response) {
 
             });
         }
 
-        setTimeout(function () {
-            shake();
-        }, delay);
+        componentWillUnmount() {
+
+        }
+
+        handleStart() {
+            //用户登录
+            window.socket.emit('login', {
+                name: name,
+                avatar: '',
+                token: token
+            }, function (response) {
+                console.log(response);
+
+                if (response.code == 200) {
+                    this.setState({
+                        isGameWait: response.data.isGameWait,
+                        isGameStart: response.data.isGameStart,
+                        isGameStop: response.data.isGameStop
+                    });
+
+                    this.handleShake();
+                }
+            }.bind(this));
+        }
+
+        handleShake() {
+            var distance = getRandom(1, 10);
+            var delay = getRandom(500, 1000);
+
+            if (this.state.isGameStart) {
+                console.log(1);
+                //用户摇一摇
+                socket.emit('shake', {
+                    token: token,
+                    distance: distance
+                }, function (data) {
+
+                });
+            }
+
+            setTimeout(function () {
+                this.handleShake();
+            }.bind(this), delay);
+        }
+
+        render() {
+            return (
+                    <div>
+                        <h1 style={{textAlign: 'center'}}>
+                            {
+                                this.state.isGameWait ?
+                                    '等待'
+                                    :
+                                    ''
+
+                            }
+                            {
+                                this.state.isGameStart ?
+                                    '开始'
+                                    :
+                                    ''
+
+                            }
+                            {
+                                this.state.isGameStop ?
+                                    '结束'
+                                    :
+                                    ''
+
+                            }
+                        </h1>
+                        <button onClick={this.handleStart.bind(this)}>加入</button>
+                    </div>
+            );
+        }
     }
 
-    shake();
+    ReactDOM.render(<Index/>, document.getElementById('container'));
 </script>
 </body>

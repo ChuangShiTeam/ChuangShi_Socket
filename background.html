@@ -1,6 +1,5 @@
 <html>
 <head>
-    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
     <script src="https://npmcdn.com/react@15.3.1/dist/react.js"></script>
     <script src="https://npmcdn.com/react-dom@15.3.1/dist/react-dom.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
@@ -14,7 +13,9 @@
             super(props);
 
             this.state = {
-
+                isGameWait: false,
+                isGameStart: false,
+                isGameStop: false
             };
         }
 
@@ -27,29 +28,62 @@
 
             });
 
-            //游戏开始
-            window.socket.on('start', function (data) {
+            //游戏等待
+            window.socket.on('wait', function (response) {
+                this.setState({
+                    isGameWait: true,
+                    isGameStart: false,
+                    isGameStop: false
+                });
+            }.bind(this));
 
-            });
+            //游戏开始
+            window.socket.on('start', function (response) {
+                this.setState({
+                    isGameWait: false,
+                    isGameStart: true,
+                    isGameStop: false
+                });
+            }.bind(this));
 
             //游戏结束
-            window.socket.on('stop', function (data) {
-
-            });
+            window.socket.on('stop', function (response) {
+                this.setState({
+                    isGameWait: false,
+                    isGameStart: false,
+                    isGameStop: true
+                });
+            }.bind(this));
 
             //退出连接
-            window.socket.on('disconnect', function () {
+            window.socket.on('disconnect', function (response) {
 
             });
 
-            //大屏登录
-            window.socket.emit('background', {}, function (data) {
-                console.log(data);
-            });
+            //后台登录
+            window.socket.emit('background', {}, function (response) {
+                console.log(response);
+
+                if (response.code == 200) {
+                    this.setState({
+                        isGameWait: response.data.isGameWait,
+                        isGameStart: response.data.isGameStart
+                    });
+                }
+            }.bind(this));
         }
 
         componentWillUnmount() {
 
+        }
+
+        handleWait() {
+            //等待游戏
+            window.socket.emit('wait', {
+
+            }, function (data) {
+                console.log(data);
+            });
         }
 
         handleStart() {
@@ -73,6 +107,33 @@
         render() {
             return (
                     <div>
+                        <h1 style={{textAlign: 'center'}}>
+                            {
+                                this.state.isGameWait ?
+                                    '等待'
+                                    :
+                                    ''
+
+                            }
+                            {
+                                this.state.isGameStart ?
+                                    '开始'
+                                    :
+                                    ''
+
+                            }
+                            {
+                                this.state.isGameStop ?
+                                    '结束'
+                                    :
+                                    ''
+
+                            }
+                        </h1>
+                        <button onClick={this.handleWait.bind(this)}>等待</button>
+                        <br/>
+                        <br/>
+                        <br/>
                         <button onClick={this.handleStart.bind(this)}>开始</button>
                         <br/>
                         <br/>

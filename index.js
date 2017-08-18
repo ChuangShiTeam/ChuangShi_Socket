@@ -10,16 +10,14 @@ server.listen(port, function () {
 
 app.use(express.static(__dirname + '/public'));
 
-var gameIsStart = false;
+var isGameWait = false;
+var isGameStart = false;
+var isGameStop = false;
 var onlineUserList = [];
 var foregroundSocket;
 var backgroundSocket;
 
 function score() {
-    if (!gameIsStart) {
-        return;
-    }
-
     var userList = [];
 
     for (var i = 0; i < onlineUserList.length; i++) {
@@ -31,12 +29,25 @@ function score() {
     }
 
     if (typeof (foregroundSocket) != 'undefined') {
-        foregroundSocket.emit('score', userList);
+        foregroundSocket.emit('score', {
+            code: 200,
+            data: userList
+        });
     }
 
-    setTimeout(function(){
-        score();
-    }, 1000);
+    if (isGameStart) {
+        setTimeout(function () {
+            score();
+        }, 1000);
+    }
+}
+
+function stop() {
+    isGameWait = false;
+    isGameStart = false;
+    isGameStop = true;
+
+    io.sockets.emit('stop', {});
 }
 
 io.on('connection', function (socket) {
@@ -48,7 +59,11 @@ io.on('connection', function (socket) {
 
         callback({
             code: 200,
-            data: true
+            data: {
+                isGameWait: isGameWait,
+                isGameStart: isGameStart,
+                isGameStop: isGameStop
+            }
         });
     });
 
@@ -59,12 +74,30 @@ io.on('connection', function (socket) {
 
         callback({
             code: 200,
-            data: true
+            data: {
+                isGameWait: isGameWait,
+                isGameStart: isGameStart,
+                isGameStop: isGameStop
+            }
         });
     });
 
     socket.on('login', function (data, callback) {
         console.log(data);
+
+        if (isGameStop) {
+            callback({
+                code: 400,
+                message: "游戏还没有开始",
+                data: {
+                    isGameWait: isGameWait,
+                    isGameStart: isGameStart,
+                    isGameStop: isGameStop
+                }
+            });
+
+            return;
+        }
 
         var isExit = false;
         for (var i = 0; i < onlineUserList.length; i++) {
@@ -75,17 +108,35 @@ io.on('connection', function (socket) {
             }
         }
 
-        if (gameIsStart && !isExit) {
-            callback({
-                code: 400,
-                message: "游戏已经开始了, 请参与下一轮游戏"
-            });
+        if (!isExit) {
 
-            return;
-        }
+            if (!isGameWait) {
+                callback({
+                    code: 400,
+                    message: "游戏还没有开始",
+                    data: {
+                        isGameWait: isGameWait,
+                        isGameStart: isGameStart,
+                        isGameStop: isGameStop
+                    }
+                });
 
-        if (data.token == 'foreground') {
-            foregroundSocket = socket;
+                return;
+            }
+
+            if (isGameStart) {
+                callback({
+                    code: 400,
+                    message: "游戏已经开始了, 请参与下一轮游戏",
+                    data: {
+                        isGameWait: isGameWait,
+                        isGameStart: isGameStart,
+                        isGameStop: isGameStop
+                    }
+                });
+
+                return;
+            }
         }
 
         if (!isExit) {
@@ -100,19 +151,65 @@ io.on('connection', function (socket) {
 
         callback({
             code: 200,
-            data: true
+            data: {
+                isGameWait: isGameWait,
+                isGameStart: isGameStart,
+                isGameStop: isGameStop
+            }
         });
+    });
+
+    socket.on('wait', function (data, callback) {
+        console.log(data);
+
+        if (isGameStart) {
+            callback({
+                code: 400,
+                message: '游戏还没有结束'
+            });
+
+            return;
+        }
+
+        if (socket == backgroundSocket) {
+            isGameWait = true;
+            isGameStart = false;
+            isGameStop = false;
+
+            onlineUserList = [];
+
+            io.sockets.emit('wait', {});
+
+            callback({
+                code: 200,
+                data: true
+            });
+        } else {
+            callback({
+                code: 400,
+                message: '没有权限'
+            });
+        }
     });
 
     socket.on('start', function (data, callback) {
         console.log(data);
 
-        if(socket == backgroundSocket) {
-            gameIsStart = true;
-
-            io.sockets.emit('start', {
-
+        if (!isGameWait) {
+            callback({
+                code: 400,
+                message: '游戏还没有等待'
             });
+
+            return;
+        }
+
+        if (socket == backgroundSocket) {
+            isGameWait = false;
+            isGameStart = true;
+            isGameStop = false;
+
+            io.sockets.emit('start', {});
 
             score();
 
@@ -131,14 +228,8 @@ io.on('connection', function (socket) {
     socket.on('stop', function (data, callback) {
         console.log(data);
 
-        if(socket == backgroundSocket) {
-            gameIsStart = false;
-
-            onlineUserList = [];
-
-            io.sockets.emit('stop', {
-
-            });
+        if (socket == backgroundSocket) {
+            stop();
 
             callback({
                 code: 200,
@@ -156,13 +247,30 @@ io.on('connection', function (socket) {
         //console.log(data);
 
         var isExit = false;
+        var distance = 0;
         for (var i = 0; i < onlineUserList.length; i++) {
             if (onlineUserList[i].token == data.token) {
-                onlineUserList[i].distance += data.distance;
-                var isExit = true;
+                distance = onlineUserList[i].distance + data.distance;
+
+                onlineUserList[i].distance = distance;
+
+                isExit = true;
 
                 break;
             }
+        }
+
+        if (distance >= 100) {
+            stop();
+
+            score();
+
+            callback({
+                code: 200,
+                data: true
+            });
+
+            return;
         }
 
         if (isExit) {

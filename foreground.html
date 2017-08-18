@@ -16,6 +16,9 @@
             super(props);
 
             this.state = {
+                isGameWait: false,
+                isGameStart: false,
+                isGameStop: false,
                 userList: []
             };
         }
@@ -29,55 +32,81 @@
 
             });
 
-            //游戏开始
-            window.socket.on('start', function (data) {
-
-            });
-
-            //游戏结束
-            window.socket.on('stop', function (data) {
-
-            });
-
-            //游戏成绩
-            window.socket.on('score', function (data) {
-
-                for (var i = 0; i < data.length - 1; i++) {
-                    for (var j = 1; j < data.length - i; j++) {
-                        var user1 = data[j - 1];
-                        var user2 = data[j];
-                        var distance1 = user1.distance;
-                        var distance2 = user2.distance;
-
-                        if (distance1 < distance2) {
-                            user1 = data[j - 1];
-                            data[j - 1] = data[j];
-                            data[j] = user1;
-                        }
-                    }
-                }
-                console.log(data);
-
+            //游戏等待
+            window.socket.on('wait', function (data) {
                 this.setState({
-                    userList: data
+                    isGameWait: true,
+                    isGameStart: false,
+                    isGameStop: false
                 });
             }.bind(this));
 
+            //游戏开始
+            window.socket.on('start', function (data) {
+                this.setState({
+                    isGameWait: false,
+                    isGameStart: true,
+                    isGameStop: false
+                });
+            }.bind(this));
+
+            //游戏结束
+            window.socket.on('stop', function (data) {
+                this.setState({
+                    isGameWait: false,
+                    isGameStart: false,
+                    isGameStop: true
+                });
+            }.bind(this));
+
+            //游戏成绩
+            window.socket.on('score', function (response) {
+                console.log(response);
+                if (response.code == 200) {
+                    var data = response.data;
+
+                    for (var i = 0; i < data.length - 1; i++) {
+                        for (var j = 1; j < data.length - i; j++) {
+                            var user1 = data[j - 1];
+                            var user2 = data[j];
+                            var distance1 = user1.distance;
+                            var distance2 = user2.distance;
+
+                            if (distance1 < distance2) {
+                                user1 = data[j - 1];
+                                data[j - 1] = data[j];
+                                data[j] = user1;
+                            }
+                        }
+                    }
+
+                    this.setState({
+                        userList: data
+                    });
+                }
+            }.bind(this));
+
             //新用户加入
-            window.socket.on('online', function (data) {
-                console.log(data.name);
-                console.log(data.avatar);
+            window.socket.on('online', function (response) {
+
             });
 
             //退出连接
-            window.socket.on('disconnect', function () {
+            window.socket.on('disconnect', function (response) {
 
             });
 
             //大屏登录
-            window.socket.emit('foreground', {}, function (data) {
-                console.log(data);
-            });
+            window.socket.emit('foreground', {}, function (response) {
+                console.log(response);
+
+                if (response.code == 200) {
+                    this.setState({
+                        isGameWait: response.data.isGameWait,
+                        isGameStart: response.data.isGameStart
+                    });
+                }
+            }.bind(this));
         }
 
         componentWillUnmount() {
@@ -87,6 +116,29 @@
         render() {
             return (
                     <div>
+                        <h1 style={{textAlign: 'center'}}>
+                            {
+                                this.state.isGameWait ?
+                                    '等待'
+                                    :
+                                    ''
+
+                            }
+                            {
+                                this.state.isGameStart ?
+                                    '开始'
+                                    :
+                                    ''
+
+                            }
+                            {
+                                this.state.isGameStop ?
+                                    '结束'
+                                    :
+                                    ''
+
+                            }
+                        </h1>
                         {
                             this.state.userList.map((item, index) => {
                                 return (
