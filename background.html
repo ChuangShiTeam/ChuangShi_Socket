@@ -1,51 +1,88 @@
 <html>
 <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <script src="https://npmcdn.com/react@15.3.1/dist/react.js"></script>
+    <script src="https://npmcdn.com/react-dom@15.3.1/dist/react-dom.js"></script>
+    <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script src="socket.io.js"></script>
 </head>
 <body>
-<script type="text/javascript">
-//    socket = io('http://localhost:3001', {jsonp: false});
-    socket = io('http://121.40.44.121:3001', {jsonp: false});
+<div id="container"></div>
+<script type="text/babel">
+    class Index extends React.Component {
+        constructor(props) {
+            super(props);
 
-    //进入连接
-    socket.on('connect', function () {
+            this.state = {
 
-    });
+            };
+        }
 
-    //游戏开始
-    socket.on('start', function (data) {
+        componentDidMount() {
+            window.socket = io('http://localhost:3001', {jsonp: false});
+//            window.socket = io('http://121.40.44.121:3001', {jsonp: false});
 
-    });
+            //进入连接
+            window.socket.on('connect', function () {
 
-    //游戏结束
-    socket.on('stop', function (data) {
+            });
 
-    });
+            //游戏开始
+            window.socket.on('start', function (data) {
 
-    //游戏重新开始
-    socket.on('restart', function (data) {
+            });
 
-    });
+            //游戏结束
+            window.socket.on('stop', function (data) {
 
-    //退出连接
-    socket.on('disconnect', function () {
+            });
 
-    });
+            //退出连接
+            window.socket.on('disconnect', function () {
 
-    //后台台登录
-    socket.emit('login', {
-        name: '后台',
-        avatar: '',
-        token: 'background'
-    });
+            });
 
-    //开始游戏
-    socket.emit('start', {});
+            //大屏登录
+            window.socket.emit('background', {}, function (data) {
+                console.log(data);
+            });
+        }
 
-    //重新开始游戏开始游戏
-    //socket.emit('restart', {});
+        componentWillUnmount() {
 
-    //显示所有用户头像
-    //socket.emit('show', {});
+        }
+
+        handleStart() {
+            //开始游戏
+            window.socket.emit('start', {
+
+            }, function (data) {
+                console.log(data);
+            });
+        }
+
+        handleStop() {
+            //结束游戏
+            window.socket.emit('stop', {
+
+            }, function (data) {
+                console.log(data);
+            });
+        }
+
+        render() {
+            return (
+                    <div>
+                        <button onClick={this.handleStart.bind(this)}>开始</button>
+                        <br/>
+                        <br/>
+                        <br/>
+                        <button onClick={this.handleStop.bind(this)}>结束</button>
+                    </div>
+            );
+        }
+    }
+
+    ReactDOM.render(<Index/>, document.getElementById('container'));
 </script>
 </body>

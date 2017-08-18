@@ -10,12 +10,60 @@ server.listen(port, function () {
 
 app.use(express.static(__dirname + '/public'));
 
+var gameIsStart = false;
 var onlineUserList = [];
 var foregroundSocket;
+var backgroundSocket;
+
+function score() {
+    if (!gameIsStart) {
+        return;
+    }
+
+    var userList = [];
+
+    for (var i = 0; i < onlineUserList.length; i++) {
+        userList.push({
+            name: onlineUserList[i].name,
+            avatar: onlineUserList[i].avatar,
+            distance: onlineUserList[i].distance
+        })
+    }
+
+    if (typeof (foregroundSocket) != 'undefined') {
+        foregroundSocket.emit('score', userList);
+    }
+
+    setTimeout(function(){
+        score();
+    }, 1000);
+}
 
 io.on('connection', function (socket) {
 
-    socket.on('login', function (data) {
+    socket.on('foreground', function (data, callback) {
+        console.log(data);
+
+        foregroundSocket = socket;
+
+        callback({
+            code: 200,
+            data: true
+        });
+    });
+
+    socket.on('background', function (data, callback) {
+        console.log(data);
+
+        backgroundSocket = socket;
+
+        callback({
+            code: 200,
+            data: true
+        });
+    });
+
+    socket.on('login', function (data, callback) {
         console.log(data);
 
         var isExit = false;
@@ -27,6 +75,15 @@ io.on('connection', function (socket) {
             }
         }
 
+        if (gameIsStart && !isExit) {
+            callback({
+                code: 400,
+                message: "游戏已经开始了, 请参与下一轮游戏"
+            });
+
+            return;
+        }
+
         if (data.token == 'foreground') {
             foregroundSocket = socket;
         }
@@ -36,44 +93,89 @@ io.on('connection', function (socket) {
                 name: data.name,
                 avatar: data.avatar,
                 token: data.token,
-                socket: socket
+                socket: socket,
+                distance: 0
+            });
+        }
+
+        callback({
+            code: 200,
+            data: true
+        });
+    });
+
+    socket.on('start', function (data, callback) {
+        console.log(data);
+
+        if(socket == backgroundSocket) {
+            gameIsStart = true;
+
+            io.sockets.emit('start', {
+
             });
 
-            if (data.token == 'foreground' || data.token == 'background') {
+            score();
 
-            } else {
-                if (typeof (foregroundSocket) != 'undefined') {
-                    foregroundSocket.emit('online', {
-                        name: data.name,
-                        avatar: data.avatar
-                    });
-                }
-            }
+            callback({
+                code: 200,
+                data: true
+            });
+        } else {
+            callback({
+                code: 400,
+                message: '没有权限'
+            });
         }
     });
 
-    socket.on('start', function (data) {
+    socket.on('stop', function (data, callback) {
         console.log(data);
 
-        io.sockets.emit('start', {
+        if(socket == backgroundSocket) {
+            gameIsStart = false;
 
-        });
+            onlineUserList = [];
+
+            io.sockets.emit('stop', {
+
+            });
+
+            callback({
+                code: 200,
+                data: true
+            });
+        } else {
+            callback({
+                code: 400,
+                message: '没有权限'
+            });
+        }
     });
 
-    socket.on('stop', function (data) {
-        console.log(data);
+    socket.on('shake', function (data, callback) {
+        //console.log(data);
 
-        io.sockets.emit('stop', {
+        var isExit = false;
+        for (var i = 0; i < onlineUserList.length; i++) {
+            if (onlineUserList[i].token == data.token) {
+                onlineUserList[i].distance += data.distance;
+                var isExit = true;
 
-        });
-    });
+                break;
+            }
+        }
 
-    socket.on('restart', function (data) {
-        console.log(data);
-
-        socket.broadcast.emit('restart', {
-
-        });
+        if (isExit) {
+            callback({
+                code: 200,
+                data: true
+            });
+        } else {
+            callback({
+                code: 400,
+                data: '用户不存在'
+            });
+        }
     });
 
     socket.on('disconnect', function () {

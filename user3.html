@@ -1,0 +1,70 @@
+<html>
+<head>
+    <script src="socket.io.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+    var name = '用户3';
+    var token = '333';
+    var isGameStart = false;
+
+    function getRandom(min, max) {
+        var Range = max - min;
+        var Rand = Math.random();
+        return (min + Math.round(Rand * Range));
+    }
+
+    socket = io('http://localhost:3001', {jsonp: false});
+//        socket = io('http://121.40.44.121:3001', {jsonp: false});
+
+    //进入连接
+    socket.on('connect', function () {
+
+    });
+
+    //游戏开始
+    socket.on('start', function (data) {
+        isGameStart = true;
+    });
+
+    //游戏结束
+    socket.on('stop', function (data) {
+        isGameStart = false;
+    });
+
+    //退出连接
+    socket.on('disconnect', function () {
+
+    });
+
+    //用户登录
+    socket.emit('login', {
+        name: name,
+        avatar: '',
+        token: token
+    }, function (data) {
+        console.log(data);
+    });
+
+    function shake() {
+        var distance = getRandom(1, 10);
+        var delay = getRandom(500, 1000);
+
+        if (isGameStart) {
+            //用户摇一摇
+            socket.emit('shake', {
+                token: token,
+                distance: distance
+            }, function (data) {
+
+            });
+        }
+
+        setTimeout(function () {
+            shake();
+        }, delay);
+    }
+
+    shake();
+</script>
+</body>

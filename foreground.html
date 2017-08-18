@@ -1,48 +1,109 @@
 <html>
 <head>
+    <script src="https://npmcdn.com/react@15.3.1/dist/react.js"></script>
+    <script src="https://npmcdn.com/react-dom@15.3.1/dist/react-dom.js"></script>
+    <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script src="socket.io.js"></script>
 </head>
 <body>
 <script type="text/javascript">
-//    socket = io('http://localhost:3001', {jsonp: false});
-    socket = io('http://121.40.44.121:3001', {jsonp: false});
 
-    //进入连接
-    socket.on('connect', function () {
+</script>
+<div id="container"></div>
+<script type="text/babel">
+    class Index extends React.Component {
+        constructor(props) {
+            super(props);
 
-    });
+            this.state = {
+                userList: []
+            };
+        }
 
-    //游戏开始
-    socket.on('start', function (data) {
+        componentDidMount() {
+            window.socket = io('http://localhost:3001', {jsonp: false});
+//            window.socket = io('http://121.40.44.121:3001', {jsonp: false});
 
-    });
+            //进入连接
+            window.socket.on('connect', function () {
 
-    //游戏结束
-    socket.on('stop', function (data) {
+            });
 
-    });
+            //游戏开始
+            window.socket.on('start', function (data) {
 
-    //游戏重新开始
-    socket.on('restart', function (data) {
+            });
 
-    });
+            //游戏结束
+            window.socket.on('stop', function (data) {
 
-    //新用户加入
-    socket.on('online', function (data) {
-        console.log(data.name);
-        console.log(data.avatar);
-    });
+            });
 
-    //退出连接
-    socket.on('disconnect', function () {
+            //游戏成绩
+            window.socket.on('score', function (data) {
 
-    });
+                for (var i = 0; i < data.length - 1; i++) {
+                    for (var j = 1; j < data.length - i; j++) {
+                        var user1 = data[j - 1];
+                        var user2 = data[j];
+                        var distance1 = user1.distance;
+                        var distance2 = user2.distance;
 
-    //大屏登录
-    socket.emit('login', {
-        name: '大屏',
-        avatar: '',
-        token: 'foreground'
-    });
+                        if (distance1 < distance2) {
+                            user1 = data[j - 1];
+                            data[j - 1] = data[j];
+                            data[j] = user1;
+                        }
+                    }
+                }
+                console.log(data);
+
+                this.setState({
+                    userList: data
+                });
+            }.bind(this));
+
+            //新用户加入
+            window.socket.on('online', function (data) {
+                console.log(data.name);
+                console.log(data.avatar);
+            });
+
+            //退出连接
+            window.socket.on('disconnect', function () {
+
+            });
+
+            //大屏登录
+            window.socket.emit('foreground', {}, function (data) {
+                console.log(data);
+            });
+        }
+
+        componentWillUnmount() {
+
+        }
+
+        render() {
+            return (
+                    <div>
+                        {
+                            this.state.userList.map((item, index) => {
+                                return (
+                                        <div key={index} >
+                                            <p>{item.name}</p>
+                                            <p>{item.avatar}</p>
+                                            <p>{item.distance}</p>
+                                        </div>
+                                );
+                            })
+                        }
+                    </div>
+            );
+        }
+    }
+
+    ReactDOM.render(<Index/>, document.getElementById('container'));
 </script>
 </body>
+
