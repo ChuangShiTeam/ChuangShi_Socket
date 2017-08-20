@@ -1,5 +1,6 @@
 <html>
 <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
     <script src="https://npmcdn.com/react@15.3.1/dist/react.js"></script>
     <script src="https://npmcdn.com/react-dom@15.3.1/dist/react-dom.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
@@ -30,7 +31,7 @@
         }
 
         componentDidMount() {
-            window.socket = io('http://localhost:3001', {jsonp: false});
+            window.socket = io('http://localhost:2999', {jsonp: false});
 //            window.socket = io('http://121.40.44.121:3001', {jsonp: false});
 
             //进入连接
