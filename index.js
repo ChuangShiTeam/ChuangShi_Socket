@@ -38,7 +38,7 @@ function score() {
     if (isGameStart) {
         setTimeout(function () {
             score();
-        }, 1000);
+        }, 500);
     }
 }
 
@@ -273,7 +273,7 @@ io.on('connection', function (socket) {
             }
         }
 
-        if (distance >= 100) {
+        if (distance >= 5000) {
             stop();
 
             score();
@@ -300,7 +300,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('disconnect', function () {
-        if (typeof (foregroundSocket) != 'undefined') {
+        if (typeof (foregroundSocket) != 'undefined' && typeof (socket.token) != 'undefined') {
             foregroundSocket.emit('offline', {
                 code: 200,
                 data: {

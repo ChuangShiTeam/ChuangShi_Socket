@@ -89,11 +89,13 @@
 
             //新用户加入
             window.socket.on('online', function (response) {
+                console.log('online');
                 console.log(response);
             });
 
             //用户退出
             window.socket.on('offline', function (response) {
+                console.log('offline');
                 console.log(response);
             });
 

@@ -21,8 +21,8 @@
         }
 
         componentDidMount() {
-            //window.socket = io('http://localhost:2999', {jsonp: false});
-            window.socket = io('http://121.40.44.121:2999', {jsonp: false});
+            window.socket = io('http://localhost:2999', {jsonp: false});
+//            window.socket = io('http://121.40.44.121:2999', {jsonp: false});
 
             //进入连接
             window.socket.on('connect', function () {
