@@ -37,7 +37,7 @@ function score() {
     if (isGameStart) {
         setTimeout(function () {
             score();
-        }, 500);
+        }, 10);
     }
 }
 
