@@ -22,8 +22,7 @@ function score() {
 
     for (var i = 0; i < onlineUserList.length; i++) {
         userList.push({
-            name: onlineUserList[i].name,
-            avatar: onlineUserList[i].avatar,
+            token: onlineUserList[i].token,
             distance: onlineUserList[i].distance
         })
     }
@@ -51,6 +50,17 @@ function stop() {
 }
 
 io.on('connection', function (socket) {
+
+    socket.on('http', function (data, callback) {
+        console.log(data);
+
+        io.sockets.emit('http', data);
+
+        callback({
+            code: 200,
+            data: true
+        });
+    });
 
     socket.on('foreground', function (data, callback) {
         console.log(data);
@@ -139,9 +149,9 @@ io.on('connection', function (socket) {
             }
         }
 
-        if (!isExit) {
-            socket.token = data.token;
+        socket.token = data.token;
 
+        if (!isExit) {
             onlineUserList.push({
                 name: data.name,
                 avatar: data.avatar,
@@ -149,17 +159,18 @@ io.on('connection', function (socket) {
                 socket: socket,
                 distance: 0
             });
+        }
 
-            if (typeof (foregroundSocket) != 'undefined') {
-                foregroundSocket.emit('online', {
-                    code: 200,
-                    data: {
-                        name: data.name,
-                        avatar: data.avatar,
-                        token: data.token
-                    }
-                });
-            }
+        if (typeof (foregroundSocket) != 'undefined') {
+
+            foregroundSocket.emit('online', {
+                code: 200,
+                data: {
+                    name: data.name,
+                    avatar: data.avatar,
+                    token: data.token
+                }
+            });
         }
 
         callback({
@@ -170,6 +181,46 @@ io.on('connection', function (socket) {
                 isGameStop: isGameStop
             }
         });
+    });
+
+    socket.on('init', function (data, callback) {
+        console.log(data);
+
+        if (isGameWait) {
+            callback({
+                code: 400,
+                message: '游戏还在等待'
+            });
+
+            return;
+        }
+
+        if (isGameStart) {
+            callback({
+                code: 400,
+                message: '游戏还没有结束'
+            });
+
+            return;
+        }
+
+        if (socket == backgroundSocket) {
+            isGameWait = false;
+            isGameStart = false;
+            isGameStop = false;
+
+            io.sockets.emit('init', {});
+
+            callback({
+                code: 200,
+                data: true
+            });
+        } else {
+            callback({
+                code: 400,
+                message: '没有权限'
+            });
+        }
     });
 
     socket.on('wait', function (data, callback) {
@@ -257,7 +308,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('shake', function (data, callback) {
-        //console.log(data);
+        console.log(data);
 
         var isExit = false;
         var distance = 0;
@@ -300,6 +351,8 @@ io.on('connection', function (socket) {
     });
 
     socket.on('disconnect', function () {
+        console.log('disconnect')
+        console.log(socket.token)
         if (typeof (foregroundSocket) != 'undefined' && typeof (socket.token) != 'undefined') {
             foregroundSocket.emit('offline', {
                 code: 200,
