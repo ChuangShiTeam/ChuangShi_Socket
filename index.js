@@ -15,7 +15,9 @@ var isGameStart = false;
 var isGameStop = false;
 var onlineUserList = [];
 var foregroundSocket;
+var foregroundTempSocket;
 var backgroundSocket;
+var backgroundTempSocket;
 
 function score() {
     var userList = [];
@@ -37,7 +39,7 @@ function score() {
     if (isGameStart) {
         setTimeout(function () {
             score();
-        }, 10);
+        }, 5);
     }
 }
 
@@ -52,7 +54,7 @@ function stop() {
 io.on('connection', function (socket) {
 
     socket.on('http', function (data, callback) {
-        console.log(data);
+        // console.log(data);
 
         io.sockets.emit('http', data);
 
@@ -63,7 +65,21 @@ io.on('connection', function (socket) {
     });
 
     socket.on('foreground', function (data, callback) {
-        console.log(data);
+        // console.log(data);
+
+        if (typeof (foregroundSocket) != 'undefined') {
+            callback({
+                code: 400,
+                message: "前台已经登录了",
+                data: {
+
+                }
+            });
+
+            return;
+        }
+
+        socket.token = 'foreground';
 
         foregroundSocket = socket;
 
@@ -78,7 +94,21 @@ io.on('connection', function (socket) {
     });
 
     socket.on('background', function (data, callback) {
-        console.log(data);
+        // console.log(data);
+
+        if (typeof (backgroundSocket) != 'undefined') {
+            callback({
+                code: 400,
+                message: "后台已经登录了",
+                data: {
+
+                }
+            });
+
+            return;
+        }
+
+        socket.token = 'background';
 
         backgroundSocket = socket;
 
@@ -93,7 +123,25 @@ io.on('connection', function (socket) {
     });
 
     socket.on('login', function (data, callback) {
-        console.log(data);
+        // console.log(data);
+
+        for (var i = 0; i < onlineUserList.length; i++) {
+            console.log(onlineUserList[i].token);
+        }
+
+        if (onlineUserList.length >= 30) {
+            callback({
+                code: 400,
+                message: "游戏人数已经满了",
+                data: {
+                    isGameWait: isGameWait,
+                    isGameStart: isGameStart,
+                    isGameStop: isGameStop
+                }
+            });
+
+            return;
+        }
 
         if (isGameStop) {
             callback({
@@ -184,7 +232,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('init', function (data, callback) {
-        console.log(data);
+        // console.log(data);
 
         if (isGameWait) {
             callback({
@@ -224,7 +272,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('wait', function (data, callback) {
-        console.log(data);
+        // console.log(data);
 
         if (isGameStart) {
             callback({
@@ -257,7 +305,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('start', function (data, callback) {
-        console.log(data);
+        // console.log(data);
 
         if (!isGameWait) {
             callback({
@@ -290,7 +338,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('stop', function (data, callback) {
-        console.log(data);
+        // console.log(data);
 
         if (socket == backgroundSocket) {
             stop();
@@ -308,7 +356,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('shake', function (data, callback) {
-        console.log(data);
+        // console.log(data);
 
         var isExit = false;
         var distance = 0;
@@ -351,15 +399,36 @@ io.on('connection', function (socket) {
     });
 
     socket.on('disconnect', function () {
-        console.log('disconnect')
-        console.log(socket.token)
-        if (typeof (foregroundSocket) != 'undefined' && typeof (socket.token) != 'undefined') {
-            foregroundSocket.emit('offline', {
-                code: 200,
-                data: {
-                    token: socket.token
+        // console.log('disconnect');
+        // console.log(socket.token);
+
+        if (typeof (socket.token) != 'undefined') {
+            if (socket.token == 'background') {
+                backgroundSocket = backgroundTempSocket;
+            } else if (socket.token == 'foreground') {
+                foregroundSocket = foregroundTempSocket;
+            } else {
+                var index = -1;
+                for (var i = 0; i < onlineUserList.length; i++) {
+                    if (onlineUserList[i].socket.token == socket.token) {
+                        index = i;
+                    }
                 }
-            });
+
+                if (index > -1) {
+                    onlineUserList.splice(index, 1);
+                }
+
+                if (typeof (foregroundSocket) != 'undefined') {
+
+                    foregroundSocket.emit('offline', {
+                        code: 200,
+                        data: {
+                            token: socket.token
+                        }
+                    });
+                }
+            }
         }
     });
 })
