@@ -39,7 +39,7 @@ function score() {
     if (isGameStart) {
         setTimeout(function () {
             score();
-        }, 5);
+        }, 200);
     }
 }
 
@@ -83,12 +83,24 @@ io.on('connection', function (socket) {
 
         foregroundSocket = socket;
 
+        var userList = [];
+
+        for (var i = 0; i < onlineUserList.length; i++) {
+            userList.push({
+                name: onlineUserList[i].name,
+                avatar: onlineUserList[i].avatar,
+                token: onlineUserList[i].token,
+                distance: onlineUserList[i].distance
+            })
+        }
+
         callback({
             code: 200,
             data: {
                 isGameWait: isGameWait,
                 isGameStart: isGameStart,
-                isGameStop: isGameStop
+                isGameStop: isGameStop,
+                onlineUserList: userList
             }
         });
     });
@@ -124,10 +136,6 @@ io.on('connection', function (socket) {
 
     socket.on('login', function (data, callback) {
         // console.log(data);
-
-        for (var i = 0; i < onlineUserList.length; i++) {
-            console.log(onlineUserList[i].token);
-        }
 
         if (onlineUserList.length >= 30) {
             callback({
@@ -210,7 +218,6 @@ io.on('connection', function (socket) {
         }
 
         if (typeof (foregroundSocket) != 'undefined') {
-
             foregroundSocket.emit('online', {
                 code: 200,
                 data: {
